@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Тебе письмо</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Literata:ital,opsz,wght@0,18..144,400;0,18..144,500;0,18..144,600;1,18..144,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FBF1E1; --paper2:#F3E2C4; --paper-edge:#E7D2AC;
+    --ink:#3B2A20; --ink-soft:#6B5644;
+    --rose:#C1637A; --mustard:#B4842A; --sage:#7C8A63;
+    --shadow: 0 10px 26px rgba(59,42,32,0.14);
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  html{ scroll-padding-top: env(safe-area-inset-top,0px); }
+  body{
+    background:
+      radial-gradient(ellipse at 15% 0%, rgba(193,99,122,0.08), transparent 55%),
+      radial-gradient(ellipse at 85% 20%, rgba(180,132,42,0.08), transparent 50%),
+      var(--paper);
+    color:var(--ink); font-family:'Literata',Georgia,serif;
+    overflow-x:hidden; min-height:100vh;
+    padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  h1,h2,h3{ font-family:'Caveat',cursive; font-weight:700; margin:0; }
+
+  canvas#dust{ position:fixed; inset:0; z-index:0; pointer-events:none; }
+  canvas#fx{ position:fixed; inset:0; z-index:30; pointer-events:none; }
+
+  main{ position:relative; z-index:1; max-width:600px; margin:0 auto; padding:0 22px 100px; }
+
+  /* ---------- envelope hero ---------- */
+  .hero{ min-height:92vh; min-height:92dvh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:8px; padding-top:30px; }
+  .envelope-scene{ perspective:1000px; cursor:pointer; }
+  .envelope{
+    position:relative; width:232px; height:150px; background:var(--paper2);
+    border-radius:6px; box-shadow:var(--shadow); border:1px solid var(--paper-edge);
+    transition: opacity .6s ease .5s, transform .6s ease .5s;
+  }
+  .envelope::before, .envelope::after{
+    content:''; position:absolute; bottom:0; width:0; height:0;
+    border-style:solid;
+  }
+  .envelope::before{ left:0; border-width:0 0 74px 116px; border-color:transparent transparent var(--paper-edge) transparent; opacity:.5; }
+  .envelope::after{ right:0; border-width:0 116px 74px 0; border-color:transparent var(--paper-edge) transparent transparent; opacity:.5; }
+  .flap{
+    position:absolute; top:0; left:0; width:100%; height:78px;
+    background: linear-gradient(160deg, var(--paper2), var(--paper-edge));
+    clip-path: polygon(0 0, 100% 0, 50% 82%);
+    transform-origin: top center; transition: transform .7s cubic-bezier(.3,.7,.3,1);
+    z-index:2; display:flex; align-items:flex-start; justify-content:center;
+  }
+  .seal{
+    margin-top:2px; width:30px; height:30px; border-radius:50%;
+    background: radial-gradient(circle at 35% 30%, #D97B8F, var(--rose));
+    display:flex; align-items:center; justify-content:center; color:#fff0f2; font-size:14px;
+    box-shadow: 0 2px 4px rgba(0,0,0,.2);
+  }
+  .envelope-scene.opened .flap{ transform: rotateX(160deg); }
+  .envelope-scene.opened .envelope{ opacity:0; transform: translateY(10px) scale(.94); pointer-events:none; }
+  .envelope-hint{ margin-top:16px; color:var(--ink-soft); font-size:.95rem; font-family:'Literata'; }
+  .envelope-scene.opened + .envelope-hint{ opacity:0; }
+  .envelope-scene:not(.opened) .envelope{ animation: inviteWiggle 3.2s ease-in-out infinite; }
+  @keyframes inviteWiggle{ 0%,80%,100%{ transform:rotate(0deg); } 84%{ transform:rotate(-2deg); } 88%{ transform:rotate(2deg); } 92%{ transform:rotate(-1deg); } 96%{ transform:rotate(1deg); } }
+
+  .hero-copy{ opacity:0; transform:translateY(14px); transition:opacity .7s ease, transform .7s ease; max-width:38ch; }
+  .hero-copy.show{ opacity:1; transform:translateY(0); }
+  .hero-copy h1{ font-size:clamp(2.1rem,7vw,3rem); color:var(--rose); line-height:1.15; }
+  .hero-copy p{ margin-top:14px; font-size:1.08rem; line-height:1.7; color:var(--ink-soft); text-align:left; }
+
+  /* ---------- sections ---------- */
+  section{ padding:58px 0; }
+  .section-head{ margin-bottom:28px; }
+  .section-head h2{ font-size:clamp(1.7rem,5vw,2.2rem); color:var(--mustard); }
+  .section-head p{ color:var(--ink-soft); margin-top:6px; font-size:1rem; }
+
+  p, .letter-text{ line-height:1.75; font-size:1.05rem; text-align:left; }
+
+  /* ---------- sticky notes ---------- */
+  .notes{ display:flex; flex-direction:column; gap:20px; }
+  .note{
+    position:relative; background:var(--paper2); border:1px solid var(--paper-edge);
+    border-radius:3px; padding:20px 22px 18px; box-shadow:var(--shadow);
+    cursor:pointer; transition: transform .25s ease, box-shadow .25s ease;
+  }
+  .note::before{
+    content:''; position:absolute; top:-10px; left:50%; transform:translateX(-50%) rotate(-3deg);
+    width:64px; height:22px; background:rgba(193,99,122,0.35); border:1px solid rgba(193,99,122,.4);
+  }
+  .note{ padding-bottom:24px; }
+  .note::after{
+    content:''; position:absolute; left:0; right:0; bottom:0; height:9px;
+    background:
+      linear-gradient(135deg, var(--paper2) 50%, transparent 50%) 0 0/9px 9px repeat-x,
+      linear-gradient(225deg, var(--paper2) 50%, transparent 50%) 0 0/9px 9px repeat-x;
+    background-color: var(--paper);
+  }
+  .note:hover{ transform: translateY(-3px) rotate(0deg) !important; box-shadow:0 14px 28px rgba(59,42,32,.18); }
+  .note h3{ font-size:1.5rem; color:var(--ink); margin-bottom:6px; }
+  .note p{ color:var(--ink-soft); font-size:.98rem; }
+  .note .extra{ max-height:0; overflow:hidden; opacity:0; transition:max-height .4s ease, opacity .3s ease, margin .3s ease; font-style:italic; color:var(--sage); font-size:.92rem; }
+  .note.open .extra{ max-height:120px; opacity:1; margin-top:10px; }
+
+  /* ---------- note generator ---------- */
+  .generator{ background:var(--paper2); border:1px solid var(--paper-edge); border-radius:6px; padding:30px 24px; box-shadow:var(--shadow); text-align:center; }
+  #compliment{
+    min-height:88px; display:flex; align-items:center; justify-content:center; text-align:center;
+    font-family:'Caveat'; font-weight:600; font-size:clamp(1.25rem,4.4vw,1.6rem); color:var(--rose); padding:6px 6px; line-height:1.4;
+  }
+  #compliment .cursor{ display:inline-block; width:2px; background:var(--rose); margin-left:2px; animation:blink 1s step-end infinite; }
+  @keyframes blink{ 50%{opacity:0;} }
+  .big-btn{
+    margin-top:10px; border:none; cursor:pointer; font-family:'Literata'; font-weight:600; font-size:.98rem;
+    padding:13px 26px; border-radius:999px; color:var(--paper); background:var(--rose);
+    transition:transform .15s ease, background .2s ease;
+  }
+  .big-btn:hover{ background:#A9526A; }
+  .big-btn:active{ transform:scale(.96); }
+
+  /* ---------- game ---------- */
+  .game-wrap{ background:var(--paper2); border:1px solid var(--paper-edge); border-radius:6px; padding:20px; box-shadow:var(--shadow); }
+  .game-hud{ display:flex; justify-content:space-between; padding:0 4px 10px; font-family:'Literata'; font-weight:600; color:var(--ink-soft); }
+  .game-hud span{ color:var(--rose); }
+  #gameArea{ position:relative; height:260px; border-radius:4px; overflow:hidden; background:rgba(59,42,32,.05); border:1px dashed var(--paper-edge); }
+  .falling-heart{ position:absolute; font-size:24px; cursor:pointer; user-select:none; transition:transform .12s ease; }
+  .falling-heart:active{ transform:scale(1.4); }
+  .game-start{ display:block; margin:14px auto 0; }
+  #gameMsg{ text-align:center; margin-top:12px; color:var(--ink-soft); min-height:1.4em; font-style:italic; }
+
+  /* ---------- secret ---------- */
+  .secret-wrap{ text-align:center; color:var(--ink-soft); }
+  .secret-btn{
+    background:none; border:1px dashed var(--paper-edge); cursor:pointer; font-size:.95rem;
+    margin-top:10px; padding:10px 18px; border-radius:999px; color:var(--ink-soft); font-family:'Literata';
+    transition: background .2s ease;
+  }
+  .secret-btn:hover{ background:rgba(193,99,122,.08); }
+
+  footer{ text-align:center; padding:34px 0 10px; color:var(--ink-soft); font-size:.92rem; font-style:italic; min-height:1.5em; }
+
+  #overlay{ position:fixed; inset:0; z-index:40; display:none; align-items:center; justify-content:center; background:rgba(59,42,32,.55); text-align:left; padding:22px; }
+  #overlay.show{ display:flex; }
+  #overlay .box{ max-width:460px; background:var(--paper); border-radius:6px; padding:30px 26px; box-shadow:0 20px 50px rgba(0,0,0,.3); animation:pop .45s cubic-bezier(.2,1.3,.4,1); }
+  @keyframes pop{ from{transform:scale(.85); opacity:0;} to{transform:scale(1); opacity:1;} }
+  #overlay h3{ font-size:1.9rem; color:var(--rose); margin-bottom:10px; }
+  #overlay p{ color:var(--ink-soft); }
+  #overlay button{ margin-top:20px; border:none; cursor:pointer; background:var(--rose); color:var(--paper); padding:10px 22px; border-radius:999px; font-weight:600; font-family:'Literata'; }
+
+  a, button{ outline-offset:3px; }
+  :focus-visible{ outline:2px solid var(--rose); }
+
+  @media (prefers-reduced-motion:reduce){
+    .flap, .envelope, .hero-copy, .note, .big-btn{ transition:none !important; }
+    .envelope-scene:not(.opened) .envelope{ animation:none !important; }
+  }
+
+  /* ---------- reading ribbon ---------- */
+  .progress-ribbon{ position:fixed; top:0; right:16px; width:16px; height:100vh; z-index:20; pointer-events:none; display:none; }
+  .progress-ribbon::before{ content:''; position:absolute; left:6px; top:0; bottom:0; width:3px; background:var(--paper-edge); opacity:.6; border-radius:2px; }
+  .progress-fill{ position:absolute; left:6px; top:0; width:3px; background:var(--rose); border-radius:2px; height:0%; }
+  .progress-seal{
+    position:absolute; left:-6px; width:16px; height:16px; border-radius:50%;
+    background:var(--rose); box-shadow:0 2px 5px rgba(59,42,32,.3); top:0%; transform:translateY(-50%);
+  }
+  .progress-seal::after{ content:'♥'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:8px; color:#fff0f2; }
+  @media (min-width:760px){ .progress-ribbon{ display:block; } }
+
+  /* ---------- grain overlay ---------- */
+  .grain-overlay{ position:fixed; inset:0; z-index:2; pointer-events:none; opacity:.4; mix-blend-mode:multiply; }
+
+  /* ---------- drop cap ---------- */
+  .hero-copy p::first-letter{ font-family:'Caveat'; font-size:2.3em; float:left; line-height:.75; padding:4px 6px 0 0; color:var(--rose); }
+
+  /* ---------- cursor heart trail ---------- */
+  .heart-trail{ position:fixed; z-index:35; pointer-events:none; font-size:14px; color:var(--rose); opacity:.75; animation:trailFade 900ms ease-out forwards; }
+  @keyframes trailFade{ to{ transform:translateY(-26px) scale(.5); opacity:0; } }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <filter id="grainFilter">
+    <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise"/>
+    <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0.23  0 0 0 0 0.16  0 0 0 0 0.12  0 0 0 0.05 0"/>
+  </filter>
+</svg>
+<div class="grain-overlay" style="filter:url(#grainFilter)"></div>
+
+<canvas id="dust"></canvas>
+<canvas id="fx"></canvas>
+<div class="progress-ribbon"><div class="progress-fill" id="progressFill"></div><div class="progress-seal" id="progressSeal"></div></div>
+
+<div id="overlay">
+  <div class="box">
+    <h3>Ладно, вот и всё письмо</h3>
+    <p id="secret-text"></p>
+    <button onclick="document.getElementById('overlay').classList.remove('show')">Закрыть и улыбнуться</button>
+  </div>
+</div>
+
+<main>
+
+  <section class="hero">
+    <div class="envelope-scene" id="envScene" onclick="openEnvelope()">
+      <div class="envelope"><div class="flap"><div class="seal">♥</div></div></div>
+    </div>
+    <div class="envelope-hint" id="envHint">нажми на конверт</div>
+    <div class="hero-copy" id="heroCopy">
+      <h1>Привет. Это тебе.</h1>
+      <p>Я не мастер красивых слов, поэтому вместо одной идеальной фразы решил накидать всего понемногу: пару записок, дурацкую игру и кое-что спрятанное в конце. Читай не спеша.</p>
+    </div>
+  </section>
+
+  <section id="notes">
+    <div class="section-head">
+      <h2>Несколько записок, которые давно хотел приклеить</h2>
+      <p>нажми на любую — там есть ещё строчка</p>
+    </div>
+    <div class="notes" id="notesGrid"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>А если хочется ещё одну прямо сейчас</h2>
+      <p>здесь их много, честное слово</p>
+    </div>
+    <div class="generator">
+      <div id="compliment">нажми на кнопку ниже 👇</div>
+      <button class="big-btn" onclick="newCompliment()">дай ещё одну</button>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Маленькая игра, чтобы не грустить</h2>
+      <p>15 секунд, никакой подготовки</p>
+    </div>
+    <div class="game-wrap">
+      <div class="game-hud">поймано: <span id="score">0</span> · осталось: <span id="timeLeft">15</span>с</div>
+      <div id="gameArea"></div>
+      <button class="big-btn game-start" id="startBtn" onclick="startGame()">начать</button>
+      <div id="gameMsg"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="secret-wrap">
+      <p>а ещё в этом письме есть приписка, но она под печатью</p>
+      <button class="secret-btn" onclick="revealSecret()">сломать печать ♥</button>
+    </div>
+  </section>
+
+  <footer></footer>
+
+</main>
+
+<script>
+  /* ---------- envelope open ---------- */
+  function openEnvelope(){
+    const scene = document.getElementById('envScene');
+    if(scene.classList.contains('opened')) return;
+    scene.classList.add('opened');
+    document.getElementById('envHint').style.transition = 'opacity .4s ease';
+    document.getElementById('envHint').style.opacity = '0';
+    setTimeout(()=> document.getElementById('heroCopy').classList.add('show'), 550);
+  }
+
+  /* ---------- cursor heart trail (desktop only) ---------- */
+  if(window.matchMedia('(hover:hover) and (pointer:fine)').matches){
+    let lastTrail = 0;
+    window.addEventListener('mousemove', e=>{
+      const now = performance.now();
+      if(now - lastTrail < 90) return;
+      lastTrail = now;
+      const h = document.createElement('div');
+      h.className = 'heart-trail';
+      h.textContent = Math.random() > 0.6 ? '♥' : '·';
+      h.style.left = (e.clientX + (Math.random()*10-5)) + 'px';
+      h.style.top = (e.clientY + (Math.random()*10-5)) + 'px';
+      document.body.appendChild(h);
+      setTimeout(()=> h.remove(), 950);
+    });
+  }
+
+  /* ---------- reading progress ribbon ---------- */
+  const progressFill = document.getElementById('progressFill');
+  const progressSeal = document.getElementById('progressSeal');
+  function updateProgress(){
+    const doc = document.documentElement;
+    const max = doc.scrollHeight - doc.clientHeight;
+    const pct = max > 0 ? Math.min(100, Math.max(0, (window.scrollY/max)*100)) : 0;
+    if(progressFill){ progressFill.style.height = pct + '%'; progressSeal.style.top = pct + '%'; }
+  }
+  window.addEventListener('scroll', updateProgress, { passive:true });
+  updateProgress();
+
+  /* ---------- warm dust background ---------- */
+  const dust = document.getElementById('dust');
+  const dctx = dust.getContext('2d');
+  let W,H;
+  function resizeDust(){ W = dust.width = window.innerWidth; H = dust.height = window.innerHeight; }
+  resizeDust(); window.addEventListener('resize', resizeDust);
+  const motes = Array.from({length:38}, ()=>({
+    x:Math.random(), y:Math.random(), r:Math.random()*1.8+0.6,
+    tw:Math.random()*Math.PI*2, depth:Math.random()*0.5+0.15
+  }));
+  let mouseX=0, mouseY=0, targetMX=0, targetMY=0;
+  window.addEventListener('mousemove', e=>{
+    targetMX = (e.clientX/window.innerWidth-0.5);
+    targetMY = (e.clientY/window.innerHeight-0.5);
+  });
+  function drawDust(t){
+    mouseX += (targetMX-mouseX)*0.03; mouseY += (targetMY-mouseY)*0.03;
+    dctx.clearRect(0,0,W,H);
+    motes.forEach(m=>{
+      const px = m.x*W + mouseX*24*m.depth;
+      const py = m.y*H + mouseY*24*m.depth + Math.sin(t*0.0004+m.tw)*10;
+      const alpha = 0.18 + Math.sin(t*0.0006+m.tw)*0.12;
+      dctx.beginPath(); dctx.arc(px,py,m.r,0,Math.PI*2);
+      dctx.fillStyle = `rgba(180,132,42,${Math.max(0,alpha)})`;
+      dctx.fill();
+    });
+    if(Math.random() < 0.0018 && petals.length < 2){
+      petals.push({ x:Math.random()*W, y:-20, vy:0.35+Math.random()*0.25, vx:(Math.random()-0.5)*0.4, rot:Math.random()*360, vr:(Math.random()-0.5)*1.2 });
+    }
+    petals.forEach(p=>{
+      p.y += p.vy; p.x += p.vx; p.rot += p.vr;
+      dctx.save(); dctx.translate(p.x,p.y); dctx.rotate(p.rot*Math.PI/180);
+      dctx.fillStyle = 'rgba(193,99,122,0.4)';
+      dctx.beginPath(); dctx.ellipse(0,0,4,6,0,0,Math.PI*2); dctx.fill();
+      dctx.restore();
+    });
+    petals = petals.filter(p=> p.y < H+20);
+    requestAnimationFrame(drawDust);
+  }
+  let petals = [];
+  requestAnimationFrame(drawDust);
+
+  /* ---------- fx: paper confetti ---------- */
+  const fx = document.getElementById('fx');
+  const fctx = fx.getContext('2d');
+  function resizeFx(){ fx.width = window.innerWidth; fx.height = window.innerHeight; }
+  resizeFx(); window.addEventListener('resize', resizeFx);
+  const paperColors = ['#C1637A','#B4842A','#7C8A63','#E7D2AC','#F3E2C4'];
+  let particles = [], fxRunning = false;
+  function burstConfetti(count, spread){
+    const cx = window.innerWidth/2;
+    for(let i=0;i<count;i++){
+      particles.push({
+        x: cx + (Math.random()-0.5)*(spread||160),
+        y: window.innerHeight*(spread?0.15:0.35) + (Math.random()-0.5)*60,
+        vx:(Math.random()-0.5)*7, vy:Math.random()*-5-1,
+        size:5+Math.random()*5, color:paperColors[Math.floor(Math.random()*paperColors.length)],
+        rot:Math.random()*360, vr:(Math.random()-0.5)*8, life:0, maxLife:150+Math.random()*40
+      });
+    }
+    kickFx();
+  }
+  function kickFx(){ if(!fxRunning){ fxRunning=true; requestAnimationFrame(tickFx); } }
+  function tickFx(){
+    fctx.clearRect(0,0,fx.width,fx.height);
+    particles.forEach(p=>{
+      p.vy += 0.15; p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life++;
+      fctx.save(); fctx.translate(p.x,p.y); fctx.rotate(p.rot*Math.PI/180);
+      fctx.fillStyle = p.color; fctx.globalAlpha = Math.max(0,1-p.life/p.maxLife);
+      fctx.fillRect(-p.size/2,-p.size/2,p.size,p.size*0.65);
+      fctx.restore();
+    });
+    fctx.globalAlpha = 1;
+    particles = particles.filter(p=> p.life < p.maxLife);
+    if(particles.length>0) requestAnimationFrame(tickFx);
+    else { fxRunning=false; fctx.clearRect(0,0,fx.width,fx.height); }
+  }
+
+  /* ---------- sticky notes ---------- */
+  const notes = [
+    { title:'Твой смех', text:'У тебя один из тех смехов, после которых хочется рассказать ещё более дурацкую шутку — просто чтобы услышать его снова.', extra:'P.S. я коллекционирую поводы тебя рассмешить.' },
+    { title:'Твои сообщения не вовремя', text:'Половина из них приходит в самый неожиданный момент, но я читаю их с улыбкой каждый раз.', extra:'P.S. даже если это просто мем.' },
+    { title:'Твоё упрямство', text:'Когда ты вбиваешь себе что-то в голову, сопротивление бесполезно. Я давно перестал спорить.', extra:'P.S. это раздражает и восхищает одновременно.' },
+    { title:'Твой вкус', text:'В музыке, фильмах, даже в мелочах — ты почти никогда не ошибаешься. Раздражающе стабильно.', extra:'P.S. я потихоньку ворую твои плейлисты.' },
+    { title:'Как ты заботишься', text:'Ты замечаешь то, что другие пропускают, и делаешь это без пафоса — просто потому что тебе не всё равно.', extra:'P.S. это редко встречается.' },
+    { title:'Просто то, что ты рядом', text:'Даже самые обычные дни становятся лучше только потому, что в них есть ты.', extra:'P.S. без лишнего пафоса — это правда.' }
+  ];
+  const notesGrid = document.getElementById('notesGrid');
+  notes.forEach(n=>{
+    const el = document.createElement('div');
+    el.className = 'note';
+    const angle = (Math.random()*4-2).toFixed(1);
+    el.style.transform = `rotate(${angle}deg)`;
+    el.innerHTML = `<h3>${n.title}</h3><p>${n.text}</p><div class="extra">${n.extra}</div>`;
+    el.addEventListener('click', ()=> el.classList.toggle('open'));
+    notesGrid.appendChild(el);
+  });
+
+  /* ---------- compliment generator ---------- */
+  const compliments = [
+    'Ты самая добрая, милая, очаровательная, красивая, восхитительная, неземная, прекрасная, удивительная, искренняя, неповторимая и просто самая лучшая девушка из всех.',
+    'Любимая моя, родная. Хочу сказать тебе огромное спасибо за то, что ты появилась в моей жизни.',
+    'Ты стала словно лучиком солнца в этом мире — каждый день наполняешь его теплом и своей любовью.',
+    'Ты стала человеком, с которым хочется делиться всем, даже тем, что я никогда никому не рассказывал.',
+    'Ты приносишь в мою жизнь особое чувство, от которого хочется жить по-другому — лучше, мягче, честнее.',
+    'Мне нравится, как ты смеёшься, как говоришь простые вещи — но они звучат иначе.',
+    'Ты потрясающая, интересная, талантливая, искренняя, смелая, весёлая, добрая, очаровательная, лучезарная, стильная, уникальная, несравненная.',
+    'Если номер — то только первый. Если песня — то самая зажигательная. Если чувство — то самое нежное.',
+    'Ты достойна самого лучшего. Ты та самая девушка, которая с лёгкостью может заменить и Луну, и Солнце.',
+    'Ты красивая... правда, очень. И дело не только во внешности, но и в душе твоей, тонущей в вечности, и в тепле самых ярких ночей.',
+    'В каждом шаге, в малейшем движении, в нежном взгляде, украдкой брошенном.'
+  ];
+  const complimentEl = document.getElementById('compliment');
+  let lastIndex=-1, typing=null;
+  function newCompliment(){
+    let i; do{ i = Math.floor(Math.random()*compliments.length); } while(i===lastIndex && compliments.length>1);
+    lastIndex = i;
+    const text = compliments[i];
+    if(typing) clearInterval(typing);
+    complimentEl.innerHTML = '<span id="typed"></span><span class="cursor">&nbsp;</span>';
+    const typedEl = document.getElementById('typed');
+    let idx=0;
+    typing = setInterval(()=>{
+      typedEl.textContent = text.slice(0, idx+1); idx++;
+      if(idx>=text.length) clearInterval(typing);
+    }, 24);
+    burstConfetti(16);
+  }
+
+  /* ---------- falling hearts game ---------- */
+  const gameArea = document.getElementById('gameArea');
+  const scoreEl = document.getElementById('score');
+  const timeEl = document.getElementById('timeLeft');
+  const startBtn = document.getElementById('startBtn');
+  const gameMsg = document.getElementById('gameMsg');
+  let score=0, gameTimer=null, spawnTimer=null, gameHearts=[], gameRunning=false;
+  function startGame(){
+    if(gameRunning) return;
+    gameRunning = true; score=0; scoreEl.textContent='0';
+    let t=15; timeEl.textContent=t; gameMsg.textContent='';
+    startBtn.disabled=true; startBtn.style.opacity=.5; gameArea.innerHTML='';
+    spawnTimer = setInterval(spawnHeart, 550);
+    gameTimer = setInterval(()=>{ t--; timeEl.textContent=t; if(t<=0) endGame(); }, 1000);
+    requestAnimationFrame(moveHearts);
+  }
+  function spawnHeart(){
+    const el = document.createElement('div');
+    el.className = 'falling-heart';
+    el.textContent = ['♥','✦','❀','♡'][Math.floor(Math.random()*4)];
+    el.style.color = paperColors[Math.floor(Math.random()*paperColors.length)];
+    const areaW = gameArea.clientWidth;
+    el.style.left = (Math.random()*(areaW-26))+'px';
+    el.style.top = '-26px';
+    el.dataset.speed = (1.4+Math.random()*2.3).toFixed(2);
+    el.addEventListener('click', ()=>{
+      if(!gameRunning) return;
+      score++; scoreEl.textContent=score; el.remove();
+    });
+    gameArea.appendChild(el); gameHearts.push(el);
+  }
+  function moveHearts(){
+    gameHearts = gameHearts.filter(el=>el.isConnected);
+    gameHearts.forEach(el=>{
+      const top = parseFloat(el.style.top) + parseFloat(el.dataset.speed);
+      el.style.top = top+'px';
+      if(top > gameArea.clientHeight) el.remove();
+    });
+    if(gameRunning) requestAnimationFrame(moveHearts);
+  }
+  function endGame(){
+    gameRunning=false; clearInterval(spawnTimer); clearInterval(gameTimer);
+    gameHearts.forEach(el=>el.remove()); gameHearts=[];
+    startBtn.disabled=false; startBtn.style.opacity=1;
+    let msg;
+    if(score>=15) msg = `${score} — это уже нечестно. Ты явно тренировалась ловить сердца заранее.`;
+    else if(score>=8) msg = `${score} — очень достойно, почти как твоя скорость реакции на мои шутки.`;
+    else msg = `${score} — ну ладно, зато ты тут дочитала до этого места, а это и есть главное.`;
+    gameMsg.textContent = msg;
+    burstConfetti(26);
+  }
+
+  /* ---------- secret ---------- */
+  function revealSecret(){
+    document.getElementById('secret-text').textContent =
+      'Если ты дочитала до сюда — спасибо. Серьёзно. Я не всегда умею вовремя сказать это словами, поэтому пусть будет так: ты значишь для меня намного больше, чем помещается в эти записки и глупую игру про сердечки.';
+    document.getElementById('overlay').classList.add('show');
+    burstConfetti(48, 320);
+  }
+
+</script>
+</body>
+</html>
